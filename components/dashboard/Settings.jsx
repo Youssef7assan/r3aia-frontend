@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { User, Lock, Save, Camera, Mail, Phone, MapPin, Building2, Store, HeartPulse, Stethoscope, ChevronRight, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import api from "../../lib/axios";
 import { toast } from "react-toastify";
+import extractError from "../../lib/extractError";
 
 export default function Settings({ profileData, refetchProfile }) {
   if (!profileData) return null;
@@ -138,7 +139,7 @@ export default function Settings({ profileData, refetchProfile }) {
       toast.success("✅ تم تحديث بيانات الملف الشخصي بنجاح", { className: "font-bold font-cairo" });
       if (refetchProfile) refetchProfile();
     } catch (err) {
-      toast.error(err.response?.data?.message || err.response?.data?.title || "حدث خطأ أثناء التحديث");
+      toast.error(extractError(err, "حدث خطأ أثناء تحديث البيانات"));
     } finally {
       setIsSubmitting(false);
     }
@@ -164,8 +165,7 @@ export default function Settings({ profileData, refetchProfile }) {
       toast.success("✅ تم تغيير كلمة المرور بنجاح");
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (err) {
-      const errorMsg = err.response?.data?.errors?.[0] || "كلمة المرور الحالية غير صحيحة أو حدث خطأ";
-      toast.error(errorMsg);
+      toast.error(extractError(err, "كلمة المرور الحالية غير صحيحة"));
     } finally {
       setIsSubmitting(false);
     }

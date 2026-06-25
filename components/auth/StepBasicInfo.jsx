@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { User, Mail, Phone, Lock, Hash, AtSign, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../lib/axios';
+import extractError from '../../lib/extractError';
 import { toast } from 'react-toastify';
 
 export default function StepBasicInfo({ role, onNext, onBack }) {
@@ -75,35 +76,8 @@ export default function StepBasicInfo({ role, onNext, onBack }) {
       toast.success('تم إنشاء الحساب بنجاح! أكمل بياناتك الآن.');
       onNext();
     } catch (error) {
-      const data = error.response?.data;
-      let msg = 'حدث خطأ أثناء التسجيل. يرجى المحاولة.';
-
-      if (data?.errors) {
-        if (Array.isArray(data.errors)) {
-          // حالة 1: { errors: ["رسالة خطأ", ...] } من الـ Repository
-          msg = data.errors.map(err => {
-            if (err.includes('under review')) return 'هذا الرقم القومي مسجل بالفعل وحسابك لا يزال قيد المراجعة.';
-            if (err.includes('already registered')) return 'هذا الرقم القومي مسجل من قبل.';
-            if (err.includes('already in use')) return 'هذا البريد الإلكتروني مستخدم مسبقاً.';
-            if (err.includes('banned')) return 'هذا الرقم القومي محظور من المنصة.';
-            return err;
-          }).join(' | ');
-        } else if (typeof data.errors === 'object') {
-          // حالة 2: { errors: { Email: ["..."], Password: ["..."] } } من ModelState
-          const msgs = Object.values(data.errors).flat();
-          msg = msgs.join(' | ');
-        }
-      } else if (data?.title) {
-        // حالة 3: ValidationProblemDetails مع title فقط
-        msg = data.title;
-      } else if (data?.message) {
-        msg = data.message;
-      } else if (typeof data === 'string' && data.length > 0) {
-        msg = data;
-      }
-
-      toast.error(msg);
-      console.error('Register error:', data);
+      toast.error(extractError(error, 'حدث خطأ أثناء التسجيل. يرجى المحاولة.'));
+      console.error('Register error:', error.response?.data);
     } finally {
       setLoading(false);
     }

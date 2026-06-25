@@ -6,6 +6,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { parseJwt } from "../../../lib/jwt";
+import extractError from "../../../lib/extractError";
 import {
   LayoutDashboard, Users, ClipboardList, Heart, LogOut,
   CheckCircle2, XCircle, ShieldAlert, Megaphone,
@@ -127,7 +128,7 @@ export default function AdminDashboard() {
       }
       setPendingUsers(p => p.filter(u => u.id !== userId));
       setStats(s => s ? { ...s, pendingVerifications: Math.max(0, s.pendingVerifications - 1) } : s);
-    } catch { toast.error("حدث خطأ، حاول مرة أخرى"); }
+    } catch (err) { toast.error(extractError(err, "فشل تنفيذ الإجراء على المستخدم")); }
   };
 
   const handleCreateCase = async (e) => {
@@ -158,7 +159,7 @@ export default function AdminDashboard() {
       setDonateForm({ title: "", description: "", goalAmount: "", patientName: "", caseImage: null });
       fetchDonationCases();
     } catch (err) {
-      toast.error(err.response?.data?.message || "فشل العملية");
+      toast.error(extractError(err, "فشل العملية"));
     } finally {
       setSending(false);
     }
@@ -187,8 +188,8 @@ export default function AdminDashboard() {
         toast.success("تم حظر المستخدم بنجاح");
       }
       fetchUsers();
-    } catch {
-      toast.error("فشل في تغيير حالة المستخدم");
+    } catch (err) {
+      toast.error(extractError(err, "فشل في تغيير حالة المستخدم"));
     }
   };
 
@@ -198,8 +199,8 @@ export default function AdminDashboard() {
       await api.delete(`/Admin/donation-cases/${id}`);
       toast.success("تم حذف الحالة بنجاح");
       fetchDonationCases();
-    } catch {
-      toast.error("فشل حذف الحالة");
+    } catch (err) {
+      toast.error(extractError(err, "فشل حذف الحالة"));
     }
   };
 
@@ -223,7 +224,7 @@ export default function AdminDashboard() {
       await api.post("/Admin/broadcast-notification", notifyData);
       toast.success("🎉 تم إرسال الإشعار بنجاح");
       setNotifyData({ title: "", message: "", targetRole: "All" });
-    } catch { toast.error("فشل الإرسال"); }
+    } catch (err) { toast.error(extractError(err, "فشل إرسال الإشعار")); }
     finally { setSending(false); }
   };
 
@@ -236,8 +237,8 @@ export default function AdminDashboard() {
     try {
       const res = await api.get(`/Admin/request-detail?type=${type}&id=${id}`);
       setReqDetail(res.data);
-    } catch {
-      toast.error("فشل تحميل تفاصيل الطلب");
+    } catch (err) {
+      toast.error(extractError(err, "فشل تحميل تفاصيل الطلب"));
       setSelectedReq(null);
     } finally {
       setDetailLoading(false);
@@ -252,7 +253,7 @@ export default function AdminDashboard() {
       toast.success("🚨 تم إرسال نداء طوارئ لكافة المختصين بنجاح!");
       setSelectedReq(null);
     } catch (err) {
-      toast.error(err.response?.data || "فشل إرسال النداء");
+      toast.error(extractError(err, "فشل إرسال النداء"));
     }
   };
 

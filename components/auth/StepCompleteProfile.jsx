@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import api from '../../lib/axios';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
+import extractError from '../../lib/extractError';
 
 export default function StepCompleteProfile({ role }) {
   const router = useRouter();
@@ -167,27 +168,8 @@ export default function StepCompleteProfile({ role }) {
       localStorage.removeItem('r3aia_reg'); // تنظيف البيانات المؤقتة
       setTimeout(() => router.push('/pending-review'), 800);
     } catch (error) {
-      const data = error.response?.data;
-      let msg = 'حدث خطأ أثناء إكمال الملف الشخصي.';
-
-      if (data?.errors) {
-        if (Array.isArray(data.errors)) {
-          msg = data.errors.join(' | ');
-        } else if (typeof data.errors === 'object') {
-          msg = Object.values(data.errors).flat().join(' | ');
-        }
-      } else if (data?.title) {
-        msg = data.title;
-      } else if (data?.message) {
-        msg = data.message;
-      } else if (data?.error) {
-        msg = data.error;
-      } else if (typeof data === 'string' && data.length > 0) {
-        msg = data;
-      }
-
-      toast.error(msg);
-      console.error('Profile error:', data);
+      toast.error(extractError(error, 'حدث خطأ أثناء إكمال الملف الشخصي.'));
+      console.error('Profile error:', error.response?.data);
     } finally {
       setLoading(false);
     }

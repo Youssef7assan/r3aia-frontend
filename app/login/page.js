@@ -6,6 +6,7 @@ import { Mail, Lock, ArrowLeft, Heart, Shield, Users, Star } from 'lucide-react'
 import api from '../../lib/axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import extractError from '../../lib/extractError';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { parseJwt } from '../../lib/jwt';
@@ -85,11 +86,7 @@ export default function LoginPage() {
         }
       }
     } catch (error) {
-      const data = error.response?.data;
-      let msg = 'بيانات الدخول غير صحيحة. حاول مرة أخرى.';
-      if (data?.message) msg = data.message;
-      else if (typeof data === 'string' && data.length > 0) msg = data;
-      toast.error(msg);
+      toast.error(extractError(error, 'بيانات الدخول غير صحيحة. حاول مرة أخرى.'));
     } finally {
       setLoading(false);
     }

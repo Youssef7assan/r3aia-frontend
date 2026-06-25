@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Tilt from "react-parallax-tilt";
 import { MessageSquare, Plus, X, Send, Clock, User, ShieldCheck, CheckCircle2, AlertCircle, ArrowRight, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
+import extractError from "../../lib/extractError";
 
 // Role styling matrix
 const getRoleTheme = (role) => {
@@ -42,7 +43,7 @@ export default function TicketSystem({ isAdmin = false, customUserId = null, tar
       const { data } = await api.get(endpoint);
       setTickets(data);
     } catch (err) {
-      toast.error("حدث خطأ أثناء تحميل التذاكر");
+      toast.error(extractError(err, "حدث خطأ أثناء تحميل التذاكر"));
     }
     setLoading(false);
   };
@@ -59,7 +60,7 @@ export default function TicketSystem({ isAdmin = false, customUserId = null, tar
       setView("chat");
       setTimeout(() => scrollToBottom(), 100);
     } catch (err) {
-      toast.error("لم نتمكن من فتح التذكرة.");
+      toast.error(extractError(err, "لم نتمكن من فتح التذكرة"));
       setView("list");
     }
     setLoading(false);
@@ -73,7 +74,7 @@ export default function TicketSystem({ isAdmin = false, customUserId = null, tar
       setView("list");
       fetchTickets();
     } catch (err) {
-      toast.error("فشل حذف التذكرة");
+      toast.error(extractError(err, "فشل حذف التذكرة"));
     }
   };
 
@@ -88,7 +89,7 @@ export default function TicketSystem({ isAdmin = false, customUserId = null, tar
       const { data } = await api.get(`/Admin/user-details/${userId}`);
       setViewedUserDetail(data);
     } catch (err) {
-      toast.error("تعذر جلب بيانات المستخدم");
+      toast.error(extractError(err, "تعذر جلب بيانات المستخدم"));
     }
     setDetailLoading(false);
   };
@@ -127,7 +128,7 @@ export default function TicketSystem({ isAdmin = false, customUserId = null, tar
       await fetchTickets();
       fetchTicketDetails(data.ticketId);
     } catch (err) {
-      toast.error("فشل في إنشاء التذكرة.");
+      toast.error(extractError(err, "فشل في إنشاء التذكرة"));
     }
     setSending(false);
   };
@@ -142,7 +143,7 @@ export default function TicketSystem({ isAdmin = false, customUserId = null, tar
       // optimistically append or refetch
       await fetchTicketDetails(chatData.id);
     } catch (err) {
-      toast.error("فشل إرسال الرد");
+      toast.error(extractError(err, "فشل إرسال الرد"));
     }
     setSending(false);
   };
@@ -154,7 +155,7 @@ export default function TicketSystem({ isAdmin = false, customUserId = null, tar
       toast.success("تم إغلاق التذكرة");
       setChatData({ ...chatData, status: "Closed" });
     } catch (err) {
-      toast.error("فشل الإغلاق");
+      toast.error(extractError(err, "فشل إغلاق التذكرة"));
     }
   };
 

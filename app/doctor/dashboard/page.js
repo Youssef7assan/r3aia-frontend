@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import api from "../../../lib/axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import extractError from "../../../lib/extractError";
 import DashboardShell, { StatCard, EmptyState, useAuth, pageVariants } from "../../../components/dashboard/DashboardShell";
 import {
   LayoutDashboard, Stethoscope, ClipboardList, Bell, Clock,
@@ -46,6 +47,7 @@ export default function DoctorDashboard() {
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [urgentDetail, setUrgentDetail] = useState(null);
   const [clinicAppointments, setClinicAppointments] = useState([]);
+  const [acceptedRequests, setAcceptedRequests] = useState([]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -56,6 +58,7 @@ export default function DoctorDashboard() {
       api.get("/Support/notifs").then(r => setNotifs(r.data)).catch(() => {}),
       api.get("/Profiles/me").then(r => setProfile(r.data)).catch(() => {}),
       api.get("/ClinicAppointments/my-appointments").then(r => setClinicAppointments(r.data)).catch(() => {}),
+      api.get("/MedicalRequests/accepted-requests").then(r => setAcceptedRequests(r.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, [isReady]);
 
@@ -72,7 +75,7 @@ export default function DoctorDashboard() {
       setRespondingTo(null);
       setRespondForm({ appointmentDate: "", doctorNotes: "" });
       setStats(s => s ? { ...s, acceptedConsultations: s.acceptedConsultations + 1, availableConsultations: Math.max(0, s.availableConsultations - 1) } : s);
-    } catch (err) { toast.error(err.response?.data?.message || err.response?.data || "حدث خطأ"); }
+    } catch (err) { toast.error(extractError(err, "فشل قبول الطلب")); }
     finally { setSubmitting(false); }
   };
 
@@ -80,7 +83,7 @@ export default function DoctorDashboard() {
     try {
       const r = await api.get(`/MedicalRequests/detail/${reqId}`);
       setSelectedDetail(r.data);
-    } catch { toast.error("لا يمكن عرض التفاصيل"); }
+    } catch (err) { toast.error(extractError(err, "لا يمكن عرض التفاصيل")); }
   };
 
   const markRead = async (id) => {
@@ -108,7 +111,7 @@ export default function DoctorDashboard() {
     {
       id: "accepted", title: "الاستشارات المقبولة", subtitle: "استشارات قبلتها وتنتظر الموعد",
       icon: UserCheck, gradient: "from-sky-500 via-cyan-500 to-green-600", shadowColor: "shadow-sky-200",
-      stat: stats?.acceptedConsultations || 0, statLabel: "مقبولة", onClick: () => setTab("available"),
+      stat: stats?.acceptedConsultations || 0, statLabel: "مقبولة", onClick: () => setTab("accepted"),
     },
     {
       id: "notifs", title: "الإشعارات", subtitle: "تحديثات من المنصة والمرضى",
@@ -147,23 +150,34 @@ export default function DoctorDashboard() {
                 <button onClick={() => setSelectedDetail(null)} className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200"><X className="w-4 h-4" /></button>
               </div>
               <div className="space-y-3">
-                {[["المريض", selectedDetail.patientName], ["التخصص", selectedDetail.specialtyName], ["الوصف", selectedDetail.description],
-                  ["أمراض مزمنة", selectedDetail.hasChronicDisease ? "نعم" : "لا"], ["المحافظة", selectedDetail.governorate]
+                {[
+                  ["المريض", selectedDetail.patient?.fullName || selectedDetail.patientName], 
+                  ["رقم الهاتف", selectedDetail.patient?.phoneNumber],
+                  ["التخصص", selectedDetail.specialtyName], 
+                  ["الوصف", selectedDetail.description],
+                  ["أمراض مزمنة", selectedDetail.patient?.hasChronicDisease ? "نعم" : (selectedDetail.hasChronicDisease ? "نعم" : "لا")], 
+                  ["المحافظة", selectedDetail.patient?.governorateName || selectedDetail.governorate],
+                  ["المدينة", selectedDetail.patient?.cityName],
+                  ["العنوان بالتفصيل", selectedDetail.patient?.address],
+                  ["التاريخ المرضي", selectedDetail.patient?.medicalHistory],
                 ].filter(([,v]) => v).map(([l,v]) => (
                   <div key={l} className="bg-slate-50 rounded-xl p-3">
                     <p className="text-[10px] text-slate-400 font-medium">{l}</p>
                     <p className="text-sm font-semibold text-slate-700 mt-0.5">{v}</p>
                   </div>
                 ))}
-                {selectedDetail.medicalImagesUrls && selectedDetail.medicalImagesUrls.length > 0 && (
+                {(selectedDetail.medicalImages?.length > 0 || selectedDetail.medicalImagesUrls?.length > 0) && (
                   <div>
-                    <p className="text-xs text-slate-500 font-bold mb-2">صور طبية:</p>
+                    <p className="text-xs text-slate-500 font-bold mb-2">صور طبية ومرفقات:</p>
                     <div className="flex gap-2 flex-wrap">
-                      {selectedDetail.medicalImagesUrls.map((url, i) => (
-                        <a key={i} href={url} target="_blank" rel="noreferrer" className="w-20 h-20 rounded-xl bg-slate-100 overflow-hidden">
-                          <img src={url} alt="" className="w-full h-full object-cover" />
-                        </a>
-                      ))}
+                      {(selectedDetail.medicalImages || selectedDetail.medicalImagesUrls).map((url, i) => {
+                        const fullUrl = url.startsWith('http') ? url : `http://localhost:5129/${url.replace(/\\/g, '/')}`;
+                        return (
+                          <a key={i} href={fullUrl} target="_blank" rel="noreferrer" className="w-24 h-24 rounded-xl bg-slate-100 overflow-hidden shadow-sm hover:opacity-80 transition-opacity block border border-slate-200">
+                            <img src={fullUrl} alt="مرفق طبي" className="w-full h-full object-cover" />
+                          </a>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -379,6 +393,49 @@ export default function DoctorDashboard() {
         </motion.div>
       )}
 
+      {/* ══════════ ACCEPTED ══════════ */}
+      {tab === "accepted" && (
+        <motion.div key="accepted" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+          <h2 className="text-xl font-extrabold text-slate-900 mb-1">الاستشارات المقبولة</h2>
+          <p className="text-slate-400 text-sm mb-6">{acceptedRequests.length} استشارة قمت بقبولها</p>
+          {acceptedRequests.length === 0 ? (
+            <EmptyState icon={UserCheck} title="لا توجد استشارات مقبولة" subtitle="قم بقبول استشارات من الطلبات المتاحة" />
+          ) : (
+            <div className="space-y-3">
+              {acceptedRequests.map((r, i) => (
+                <motion.div key={r.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                  whileHover={{ y: -2 }} className="bg-white rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden">
+                  <div className="p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-green-400 text-white flex items-center justify-center flex-shrink-0 shadow-lg"><UserCheck className="w-5 h-5" /></div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-bold text-slate-900">{r.patientName || "مريض"}</h3>
+                          {r.status === "Completed" && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">كشف منتهي</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-500 line-clamp-2">{r.description || "لا يوجد وصف"}</p>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-400 flex-wrap">
+                          {r.specialtyName && <span className="font-semibold text-sky-600">{r.specialtyName}</span>}
+                          <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(r.createdAt).toLocaleDateString("ar-EG")}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex border-t border-slate-100">
+                    <motion.button whileHover={{ backgroundColor: "#f0fdf4" }} whileTap={{ scale: 0.98 }} onClick={() => viewDetail(r.id)}
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-bold text-emerald-600 transition-colors">
+                      <FileText className="w-4 h-4" /> عرض الملف الطبي الكامل
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      )}
+
       {/* ══════════ NOTIFICATIONS ══════════ */}
       {tab === "notif" && (
         <motion.div key="notif" variants={pageVariants} initial="initial" animate="animate" exit="exit">
@@ -475,7 +532,7 @@ export default function DoctorDashboard() {
                                   await api.put(`/ClinicAppointments/${appt.id}/status`, { status: "Confirmed" });
                                   setClinicAppointments(prev => prev.map(a => a.id === appt.id ? { ...a, status: "Confirmed" } : a));
                                   toast.success("تم تأكيد الحجز");
-                                } catch { toast.error("حدث خطأ"); }
+                                } catch (err) { toast.error(extractError(err, "فشل تأكيد الحجز")); }
                               }}
                               className="bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors">
                               <CheckCircle2 className="w-3.5 h-3.5" /> تأكيد
@@ -486,7 +543,7 @@ export default function DoctorDashboard() {
                                   await api.put(`/ClinicAppointments/${appt.id}/status`, { status: "Cancelled" });
                                   setClinicAppointments(prev => prev.map(a => a.id === appt.id ? { ...a, status: "Cancelled" } : a));
                                   toast.info("تم إلغاء الحجز");
-                                } catch { toast.error("حدث خطأ"); }
+                                } catch (err) { toast.error(extractError(err, "فشل إلغاء الحجز")); }
                               }}
                               className="bg-rose-50 hover:bg-rose-100 text-rose-500 text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors border border-rose-200">
                               <X className="w-3.5 h-3.5" /> رفض

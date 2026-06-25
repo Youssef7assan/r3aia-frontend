@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import api from "../../../lib/axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import extractError from "../../../lib/extractError";
 import DashboardShell, { StatCard, EmptyState, useAuth, pageVariants } from "../../../components/dashboard/DashboardShell";
 import {
   LayoutDashboard, Truck, ClipboardList, Bell, Clock,
@@ -54,14 +55,14 @@ export default function VolunteerDashboard() {
     ]).finally(() => setLoading(false));
   }, [isReady]);
 
-  const handleAccept = async (taskId) => {
+  const handleAccept = async (requestId) => {
     try {
-      await api.post("/Delivery/accept", { taskId });
-      toast.success("✅ تم قبول مهمة التوصيل بنجاح");
-      setAvailTasks(t => t.filter(x => x.id !== taskId));
+      await api.post("/Delivery/accept", { requestId });
+      toast.success("✅ تم قبول مهمة التوصيل بنجاح — سيتم إشعار المريض");
+      setAvailTasks(t => t.filter(x => (x.requestId || x.id) !== requestId));
       api.get("/Delivery/my-tasks").then(r => setMyTasks(r.data)).catch(() => {});
       setStats(s => s ? { ...s, myTasks: s.myTasks + 1, availableTasks: Math.max(0, s.availableTasks - 1) } : s);
-    } catch (err) { toast.error(err.response?.data?.message || err.response?.data || "حدث خطأ"); }
+    } catch (err) { toast.error(extractError(err, "فشل قبول مهمة التوصيل")); }
   };
 
   const handleUpdateStatus = async (taskId, newStatus) => {
@@ -70,7 +71,7 @@ export default function VolunteerDashboard() {
       toast.success("✅ تم تحديث حالة المهمة");
       api.get("/Delivery/my-tasks").then(r => setMyTasks(r.data)).catch(() => {});
       api.get("/Stats/volunteer").then(r => setStats(r.data)).catch(() => {});
-    } catch (err) { toast.error(err.response?.data?.message || err.response?.data || "حدث خطأ"); }
+    } catch (err) { toast.error(extractError(err, "فشل تحديث حالة المهمة")); }
   };
 
   const markRead = async (id) => {
@@ -253,27 +254,36 @@ export default function VolunteerDashboard() {
           {availTasks.length === 0 ? (
             <EmptyState icon={CheckCircle2} title="لا توجد مهام حالياً" subtitle="عمل رائع! كل المهام تم التعامل معها 🎉" />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {availTasks.map((t, i) => (
-                <motion.div key={t.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                <motion.div key={t.requestId || t.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                   whileHover={{ y: -2, boxShadow: "0 8px 30px rgba(0,0,0,0.1)" }}
                   className="bg-white rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden">
                   <div className="p-5">
-                    <div className="flex items-start gap-4">
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-500 to-pink-400 text-white flex items-center justify-center flex-shrink-0 shadow-lg"><Package className="w-5 h-5" /></div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-slate-900">مهمة توصيل #{t.id}</h3>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-600 border border-sky-200">متاح</span>
-                        </div>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-400 flex-wrap">
-                          {t.patientName && <span className="flex items-center gap-1"><User className="w-3 h-3" />{t.patientName}</span>}
-                          {t.pharmacyName && <span className="flex items-center gap-1 text-sky-600 font-semibold">📍 {t.pharmacyName}</span>}
-                          {t.address && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{t.address}</span>}
-                          <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(t.createdAt).toLocaleDateString("ar-EG")}</span>
-                        </div>
-                      </div>
+                    {/* صيدلية */}
+                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-3">
+                      <p className="text-[10px] text-amber-500 font-bold mb-1">📦 استلام الدواء من</p>
+                      <p className="text-sm font-bold text-slate-800">{t.pharmacyName || "صيدلية"}</p>
+                      {t.pharmacyAddress && <p className="text-xs text-slate-500 mt-0.5">📍 {t.pharmacyAddress}</p>}
+                      {t.pharmacyPhone && <p className="text-xs text-sky-600 font-semibold mt-0.5">📱 {t.pharmacyPhone}</p>}
                     </div>
+                    {/* مريض */}
+                    <div className="bg-sky-50 border border-sky-100 rounded-xl p-3">
+                      <p className="text-[10px] text-sky-500 font-bold mb-1">🏠 توصيل إلى</p>
+                      <p className="text-sm font-bold text-slate-800">{t.patientName || "مريض"}</p>
+                      {t.patientAddress && <p className="text-xs text-slate-500 mt-0.5">📍 {t.patientAddress}</p>}
+                      {t.patientPhone && <p className="text-xs text-sky-600 font-semibold mt-0.5">📱 {t.patientPhone}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 mt-3 text-xs text-slate-400">
+                      <Calendar className="w-3 h-3" />{new Date(t.createdAt).toLocaleDateString("ar-EG")}
+                    </div>
+                  </div>
+                  <div className="border-t border-slate-100">
+                    <motion.button whileHover={{ backgroundColor: "#f0fdf4" }} whileTap={{ scale: 0.98 }}
+                      onClick={() => handleAccept(t.requestId || t.id)}
+                      className="w-full flex items-center justify-center gap-2 py-3.5 text-sm font-bold text-emerald-600 transition-colors">
+                      <HandHeart className="w-4 h-4" /> قبول مهمة التوصيل
+                    </motion.button>
                   </div>
                 </motion.div>
               ))}
@@ -290,30 +300,40 @@ export default function VolunteerDashboard() {
           {myTasks.length === 0 ? (
             <EmptyState icon={Truck} title="ليس لديك مهام نشطة حالياً" subtitle="اذهب لعلامة التبويب 'مهام متاحة' لقبول طلبات جديدة! 🚚" />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {myTasks.map((t, i) => (
                 <motion.div key={t.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                  className={`bg-white rounded-2xl shadow-sm border overflow-hidden ${t.taskStatus === "Delivered" ? "border-sky-200" : "border-slate-100/80"}`}>
+                  className={`bg-white rounded-2xl shadow-sm border overflow-hidden ${t.taskStatus === "Delivered" ? "border-emerald-200" : "border-slate-100/80"}`}>
                   <div className="p-5">
-                    <div className="flex items-start gap-4">
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg text-white ${t.taskStatus === "Delivered" ? "bg-gradient-to-br from-sky-500 to-cyan-400" : "bg-gradient-to-br from-rose-500 to-pink-400"}`}>
-                        {t.taskStatus === "Delivered" ? <CheckCircle2 className="w-5 h-5" /> : <Truck className="w-5 h-5" />}
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shadow ${t.taskStatus === "Delivered" ? "bg-gradient-to-br from-emerald-500 to-green-400" : "bg-gradient-to-br from-rose-500 to-pink-400"}`}>
+                        {t.taskStatus === "Delivered" ? <CheckCircle2 className="w-4 h-4" /> : <Truck className="w-4 h-4" />}
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-slate-900">مهمة توصيل #{t.id}</h3>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                            t.taskStatus === "Delivered" ? "bg-sky-50 text-sky-600 border-sky-200" :
-                            "bg-sky-50 text-sky-600 border-sky-200"
-                          }`}>{t.taskStatus === "Delivered" ? "تم التوصيل" : t.taskStatus === "Taken" ? "في الانتظار" : "جاري التوصيل"}</span>
-                        </div>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-400 flex-wrap">
-                          {t.patientName && <span className="flex items-center gap-1"><User className="w-3 h-3" />{t.patientName}</span>}
-                          {t.pharmacyName && <span className="flex items-center gap-1 text-sky-600 font-semibold">📍 استلام من: {t.pharmacyName}</span>}
-                          {t.address && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />توصيل إلى: {t.address}</span>}
-                          <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(t.createdAt).toLocaleDateString("ar-EG")}</span>
-                        </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-sm">مهمة توصيل #{t.id}</h3>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          t.taskStatus === "Delivered" ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
+                          t.taskStatus === "OutForDelivery" ? "bg-amber-50 text-amber-600 border-amber-200" :
+                          "bg-sky-50 text-sky-600 border-sky-200"
+                        }`}>{t.taskStatus === "Delivered" ? "تم التوصيل ✅" : t.taskStatus === "OutForDelivery" ? "في الطريق 🚚" : "في الانتظار"}</span>
                       </div>
+                    </div>
+                    {/* صيدلية */}
+                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-3">
+                      <p className="text-[10px] text-amber-500 font-bold mb-1">📦 استلام من</p>
+                      <p className="text-sm font-bold text-slate-800">{t.pharmacyName || "صيدلية"}</p>
+                      {t.pharmacyAddress && <p className="text-xs text-slate-500 mt-0.5">📍 {t.pharmacyAddress}</p>}
+                      {t.pharmacyPhone && <p className="text-xs text-sky-600 font-semibold mt-0.5">📱 {t.pharmacyPhone}</p>}
+                    </div>
+                    {/* مريض */}
+                    <div className="bg-sky-50 border border-sky-100 rounded-xl p-3">
+                      <p className="text-[10px] text-sky-500 font-bold mb-1">🏠 توصيل إلى</p>
+                      <p className="text-sm font-bold text-slate-800">{t.patientName || "مريض"}</p>
+                      {t.patientAddress && <p className="text-xs text-slate-500 mt-0.5">📍 {t.patientAddress}</p>}
+                      {t.patientPhone && <p className="text-xs text-sky-600 font-semibold mt-0.5">📱 {t.patientPhone}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 mt-3 text-xs text-slate-400">
+                      <Calendar className="w-3 h-3" />{new Date(t.createdAt).toLocaleDateString("ar-EG")}
                     </div>
                   </div>
                   {t.taskStatus !== "Delivered" && (
@@ -321,13 +341,13 @@ export default function VolunteerDashboard() {
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                         onClick={() => handleUpdateStatus(t.id, "OutForDelivery")}
                         disabled={t.taskStatus === "OutForDelivery"}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-sky-600 bg-sky-50 disabled:opacity-50 transition-colors border border-sky-100 disabled:bg-transparent">
-                        <Truck className="w-4 h-4" /> جاري التوصيل (في الطريق)
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-amber-600 bg-amber-50 disabled:opacity-50 transition-colors border border-amber-100 disabled:bg-transparent">
+                        <Truck className="w-4 h-4" /> في الطريق
                       </motion.button>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                          onClick={() => handleUpdateStatus(t.id, "Delivered")}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white bg-sky-500 shadow-md shadow-sky-500/20 transition-all">
-                        <CheckCircle2 className="w-4 h-4" /> تم التسليم بنجاح
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-500 shadow-md shadow-emerald-500/20 transition-all">
+                        <CheckCircle2 className="w-4 h-4" /> تم التسليم ✅
                       </motion.button>
                     </div>
                   )}

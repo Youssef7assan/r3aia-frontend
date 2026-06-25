@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import api from "../../../lib/axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import extractError from "../../../lib/extractError";
 import DashboardShell, { StatCard, EmptyState, useAuth, pageVariants } from "../../../components/dashboard/DashboardShell";
 import {
   LayoutDashboard, Pill, ClipboardList, Bell, Clock,
@@ -62,7 +63,7 @@ export default function PharmacistDashboard() {
       setOpenReqs(r => r.filter(x => x.id !== id));
       setAcceptingId(null); setNotes("");
       setStats(s => s ? { ...s, fulfilledRequests: s.fulfilledRequests + 1, availableRequests: Math.max(0, s.availableRequests - 1) } : s);
-    } catch (err) { toast.error(err.response?.data?.message || err.response?.data || "حدث خطأ"); }
+    } catch (err) { toast.error(extractError(err, "فشل قبول طلب الدواء")); }
     finally { setSubmitting(false); }
   };
 
@@ -227,17 +228,29 @@ export default function PharmacistDashboard() {
                     <div className="flex items-start gap-4">
                       <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-500 to-yellow-400 text-white flex items-center justify-center flex-shrink-0 shadow-lg"><Pill className="w-5 h-5" /></div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-bold text-slate-900">{r.patientName || "مريض"}</h3>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-600 border border-sky-200">طلب #{r.id}</span>
+                          {r.needDelivery && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">🚚 يحتاج توصيل</span>}
                         </div>
                         <div className="flex items-center gap-4 mt-2 text-xs text-slate-400 flex-wrap">
                           <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(r.createdAt).toLocaleDateString("ar-EG")}</span>
-                          {r.needDelivery && <span className="text-sky-600 font-semibold">🚚 يحتاج توصيل</span>}
+                          {r.patientPhone && <span className="flex items-center gap-1 text-sky-600 font-semibold">📱 {r.patientPhone}</span>}
                         </div>
+                        {(r.patientGovernorate || r.patientCity || r.patientAddress) && (
+                          <div className="mt-2 text-xs font-semibold text-slate-600 flex items-center gap-1">
+                            📍 {[r.patientGovernorate, r.patientCity, r.patientAddress].filter(Boolean).join(" - ")}
+                          </div>
+                        )}
                         {r.prescriptionImageUrl && (
-                          <a href={r.prescriptionImageUrl} target="_blank" rel="noreferrer"
-                            className="inline-flex items-center gap-1 mt-2 text-xs text-sky-600 font-semibold hover:underline"><Image className="w-3 h-3" /> عرض صورة الروشتة</a>
+                          <a href={r.prescriptionImageUrl.startsWith('http') ? r.prescriptionImageUrl : `http://localhost:5129/${r.prescriptionImageUrl.replace(/\\/g, '/')}`} 
+                            target="_blank" rel="noreferrer"
+                            className="inline-flex items-center gap-2 mt-3 bg-sky-50 border border-sky-100 rounded-xl px-3 py-2 hover:bg-sky-100 transition-colors group">
+                            <Image className="w-4 h-4 text-sky-500" />
+                            <span className="text-xs text-sky-700 font-bold">عرض صورة الروشتة</span>
+                            <img src={r.prescriptionImageUrl.startsWith('http') ? r.prescriptionImageUrl : `http://localhost:5129/${r.prescriptionImageUrl.replace(/\\/g, '/')}`} 
+                              alt="روشتة" className="w-12 h-12 rounded-lg object-cover border border-sky-200" />
+                          </a>
                         )}
                       </div>
                     </div>

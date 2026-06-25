@@ -10,6 +10,7 @@ import {
 import api from "../../lib/axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import extractError from "../../lib/extractError";
 
 export default function DoctorsPage() {
   const [doctors, setDoctors] = useState([]);
@@ -78,7 +79,7 @@ export default function DoctorsPage() {
       setBookingPhone("");
       setBookingNotes("");
     } catch (err) {
-      toast.error(err.response?.data?.message || "حدث خطأ أثناء الحجز.");
+      toast.error(extractError(err, "حدث خطأ أثناء الحجز."));
     } finally {
       setBookingLoading(false);
     }

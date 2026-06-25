@@ -12,6 +12,7 @@ import {
 import api from "../../../lib/axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import extractError from "../../../lib/extractError";
 
 const fixImg = (path) => {
   if (!path) return null;
@@ -56,7 +57,7 @@ export default function DoctorDetailsPage() {
       setShowBooking(false);
       setBookingName(""); setBookingPhone(""); setBookingNotes("");
     } catch (err) {
-      toast.error(err.response?.data?.message || "حدث خطأ أثناء الحجز");
+      toast.error(extractError(err, "حدث خطأ أثناء الحجز"));
     } finally {
       setBookingLoading(false);
     }

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import api from "../../../lib/axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import extractError from "../../../lib/extractError";
 import DashboardShell, { StatCard, EmptyState, useAuth, pageVariants } from "../../../components/dashboard/DashboardShell";
 import {
   LayoutDashboard, Stethoscope, Pill, Bell, FileText, Clock,
@@ -98,7 +99,7 @@ export default function PatientDashboard() {
       api.get("/MedicalRequests/my-requests").then(r => setMedRequests(r.data)).catch(() => {});
       api.get("/Stats/patient").then(r => setStats(r.data)).catch(() => {});
     } catch (err) {
-      toast.error(err.response?.data?.message || err.response?.data || "حدث خطأ، حاول مرة أخرى");
+      toast.error(extractError(err, "فشل إرسال طلب الاستشارة"));
     } finally { setSubmitting(false); }
   };
 
@@ -118,7 +119,7 @@ export default function PatientDashboard() {
       api.get("/MedicineRequests/my-requests").then(r => setMedReqs(r.data)).catch(() => {});
       api.get("/Stats/patient").then(r => setStats(r.data)).catch(() => {});
     } catch (err) {
-      toast.error(err.response?.data?.message || err.response?.data || "حدث خطأ");
+      toast.error(extractError(err, "فشل إرسال طلب الدواء"));
     } finally { setSubmitting(false); }
   };
 
@@ -145,7 +146,7 @@ export default function PatientDashboard() {
       setDonateForm({ amount: "", paymentMethod: "VodafoneCash", receiptImage: null });
       api.get("/Donations/cases").then(r => setDonations(r.data)).catch(() => {});
     } catch (err) {
-      toast.error("حدث خطأ أثناء تسجيل التبرع");
+      toast.error(extractError(err, "فشل تسجيل التبرع"));
     } finally {
       setSubmitting(false);
     }
@@ -157,7 +158,16 @@ export default function PatientDashboard() {
       await api.post(`/MedicalRequests/cancel/${requestId}`, { cancellationReason: "إلغاء بواسطة المريض" });
       toast.success("تم إلغاء الطلب");
       setMedRequests(r => r.map(x => x.id === requestId ? { ...x, requestStatus: "Cancelled" } : x));
-    } catch { toast.error("حدث خطأ"); }
+    } catch (err) { toast.error(extractError(err, "فشل إلغاء الطلب")); }
+  };
+
+  // ── Complete Request ──
+  const handleComplete = async (requestId) => {
+    try {
+      await api.post(`/MedicalRequests/complete/${requestId}`);
+      toast.success("تم تأكيد إتمام الكشف بنجاح! شكراً لك.");
+      setMedRequests(r => r.map(x => x.id === requestId ? { ...x, requestStatus: "Completed" } : x));
+    } catch (err) { toast.error(extractError(err, "فشل تأكيد الكشف")); }
   };
 
   const markRead = async (id) => {
@@ -604,20 +614,35 @@ export default function PatientDashboard() {
                         <div className="flex items-center gap-4 mt-3 text-xs text-slate-400 flex-wrap">
                           <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(r.createdAt).toLocaleDateString("ar-EG")}</span>
                           {r.doctorName && <span className="flex items-center gap-1 text-sky-600 font-semibold"><Stethoscope className="w-3 h-3" />د. {r.doctorName}</span>}
-                          {r.appointmentDate && <span className="flex items-center gap-1 text-sky-600 font-semibold"><Clock className="w-3 h-3" />الموعد: {new Date(r.appointmentDate).toLocaleDateString("ar-EG")}</span>}
+                          {r.appointmentDate && <span className="flex items-center gap-1 text-sky-600 font-semibold"><Clock className="w-3 h-3" />الموعد: {new Date(r.appointmentDate).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>}
                         </div>
+                        {r.clinicAddress && (
+                          <div className="mt-2 text-xs font-semibold text-slate-600">
+                            العنوان: {r.clinicAddress}
+                          </div>
+                        )}
                         {r.doctorNotes && (
                           <div className="mt-3 bg-sky-50 border border-sky-100 rounded-xl p-3">
                             <p className="text-xs text-sky-700 flex items-start gap-1"><MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />{r.doctorNotes}</p>
                           </div>
                         )}
-                        {r.requestStatus === "Pending" && (
-                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                            onClick={() => handleCancel(r.id)}
-                            className="mt-3 text-xs text-rose-500 font-bold bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
-                            <XCircle className="w-3 h-3" /> إلغاء الطلب
-                          </motion.button>
-                        )}
+                        
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
+                          {r.requestStatus === "Pending" && (
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                              onClick={() => handleCancel(r.id)}
+                              className="text-xs text-rose-500 font-bold bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+                              <XCircle className="w-3 h-3" /> إلغاء الطلب
+                            </motion.button>
+                          )}
+                          {r.requestStatus === "Accepted" && (
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                              onClick={() => handleComplete(r.id)}
+                              className="text-xs text-emerald-600 font-bold bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1 shadow-sm">
+                              <CheckCircle2 className="w-4 h-4" /> تأكيد إتمام الكشف
+                            </motion.button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -646,9 +671,10 @@ export default function PatientDashboard() {
           {medReqs.length === 0 ? (
             <EmptyState icon={Pill} title="لا توجد طلبات أدوية" subtitle="ارفع صورة الروشتة واحصل على دوائك مجاناً" />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {medReqs.map((r, i) => {
-                const s = statusMap[r.requestStatus] || statusMap.Pending;
+                const s = statusMap[r.requestStatus || r.status] || statusMap.Pending;
+                const imgUrl = r.prescriptionImageUrl ? (r.prescriptionImageUrl.startsWith('http') ? r.prescriptionImageUrl : `http://localhost:5129/${r.prescriptionImageUrl.replace(/\\/g, '/')}`) : null;
                 return (
                   <motion.div key={i} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                     whileHover={{ y: -2, boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}
@@ -658,15 +684,51 @@ export default function PatientDashboard() {
                         <Pill className="w-5 h-5" />
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-bold text-slate-900">طلب دواء #{r.id}</h3>
                           <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${s.color}`}>{s.label}</span>
+                          {r.needDelivery && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200">🚚 توصيل</span>}
                         </div>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-400 flex-wrap">
+                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
                           <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(r.createdAt).toLocaleDateString("ar-EG")}</span>
-                          {r.pharmacyName && <span className="font-semibold text-sky-600">📍 {r.pharmacyName}</span>}
-                          {r.needDelivery && <span className="text-sky-600 font-semibold">🚚 توصيل مطلوب</span>}
                         </div>
+                        
+                        {/* صورة الروشتة */}
+                        {imgUrl && (
+                          <a href={imgUrl} target="_blank" rel="noreferrer"
+                            className="inline-flex items-center gap-2 mt-3 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 hover:bg-slate-100 transition-colors">
+                            <ImageIcon className="w-4 h-4 text-slate-500" />
+                            <span className="text-xs text-slate-600 font-bold">عرض الروشتة</span>
+                            <img src={imgUrl} alt="روشتة" className="w-10 h-10 rounded-lg object-cover border border-slate-200" />
+                          </a>
+                        )}
+
+                        {/* معلومات الصيدلية */}
+                        {r.pharmacyName && (
+                          <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+                            <p className="text-[10px] text-emerald-500 font-bold mb-1">✅ الصيدلية التي وفّرت الدواء</p>
+                            <p className="text-sm font-bold text-slate-800">{r.pharmacyName}</p>
+                            {r.pharmacyAddress && <p className="text-xs text-slate-500 mt-0.5">📍 {r.pharmacyAddress}</p>}
+                            {r.pharmacyPhone && <p className="text-xs text-sky-600 font-semibold mt-0.5">📱 {r.pharmacyPhone}</p>}
+                            {r.pharmacyNotes && <p className="text-xs text-slate-600 mt-1 bg-white rounded-lg p-2 border border-emerald-100">💬 {r.pharmacyNotes}</p>}
+                          </div>
+                        )}
+
+                        {/* معلومات المتطوع */}
+                        {r.volunteerName && (
+                          <div className="mt-3 bg-amber-50 border border-amber-100 rounded-xl p-3">
+                            <p className="text-[10px] text-amber-500 font-bold mb-1">🚚 متطوع التوصيل</p>
+                            <p className="text-sm font-bold text-slate-800">{r.volunteerName}</p>
+                            {r.volunteerPhone && <p className="text-xs text-sky-600 font-semibold mt-0.5">📱 {r.volunteerPhone}</p>}
+                            {r.deliveryStatus && (
+                              <span className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                r.deliveryStatus === "Delivered" ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
+                                r.deliveryStatus === "OutForDelivery" ? "bg-amber-50 text-amber-600 border-amber-200" :
+                                "bg-sky-50 text-sky-600 border-sky-200"
+                              }`}>{r.deliveryStatus === "Delivered" ? "تم التوصيل ✅" : r.deliveryStatus === "OutForDelivery" ? "في الطريق 🚚" : "المتطوع قبل المهمة"}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>
