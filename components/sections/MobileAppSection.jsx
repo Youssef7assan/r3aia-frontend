@@ -44,21 +44,7 @@ export default function MobileAppSection() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                {/* App Store Button */}
-                <motion.a 
-                  whileHover={{ y: -5, scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  href="https://www.mediafire.com/file/rqmaa4auw11ee2u/app-release.apk/file"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-6 py-3.5 rounded-2xl transition-all w-full sm:w-auto min-w-[200px]"
-                >
-                  <Apple className="w-8 h-8" />
-                  <div className="text-right flex-1">
-                    <div className="text-[10px] text-white/70 font-semibold mb-0.5">Download on the</div>
-                    <div className="text-lg font-bold leading-none">App Store</div>
-                  </div>
-                </motion.a>
+                
 
                 {/* Google Play Button */}
                 <motion.a 
