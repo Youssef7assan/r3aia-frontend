@@ -10,6 +10,7 @@ import StatsSection from "@/components/sections/StatsSection";
 import FeatureVolunteer from "@/components/sections/FeatureVolunteer";
 import TestimonialsSection from "@/components/sections/TestimonialsSection";
 import CTASection from "@/components/sections/CTASection";
+import MobileAppSection from "@/components/sections/MobileAppSection";
 import FAQSection from "@/components/sections/FAQSection";
 import DonationsSection from "@/components/sections/DonationsSection";
 
@@ -27,6 +28,7 @@ export default function HomePage() {
       <FeatureVolunteer />
       <TestimonialsSection />
       <CTASection />
+      <MobileAppSection />
       <FAQSection />
     </>
   );
