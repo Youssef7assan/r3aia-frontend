@@ -48,7 +48,9 @@ export default function MobileAppSection() {
                 <motion.a 
                   whileHover={{ y: -5, scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  href="#"
+                  href="https://www.mediafire.com/file/rqmaa4auw11ee2u/app-release.apk/file"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white px-6 py-3.5 rounded-2xl transition-all w-full sm:w-auto min-w-[200px]"
                 >
                   <Apple className="w-8 h-8" />
@@ -62,7 +64,9 @@ export default function MobileAppSection() {
                 <motion.a 
                   whileHover={{ y: -5, scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  href="#"
+                  href="https://www.mediafire.com/file/rqmaa4auw11ee2u/app-release.apk/file"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-3 bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-400 hover:to-sky-500 shadow-lg shadow-sky-500/25 text-white px-6 py-3.5 rounded-2xl transition-all border border-sky-400/50 w-full sm:w-auto min-w-[200px]"
                 >
                   <Play className="w-8 h-8 fill-current" />

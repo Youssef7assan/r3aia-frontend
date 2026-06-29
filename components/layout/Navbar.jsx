@@ -16,6 +16,7 @@ import {
   LogIn,
   UserPlus,
   LayoutDashboard,
+  Smartphone,
 } from "lucide-react";
 
 const navLinks = [
@@ -142,6 +143,16 @@ export default function Navbar() {
 
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center gap-3">
+            <a 
+              href="https://www.mediafire.com/file/rqmaa4auw11ee2u/app-release.apk/file"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 ml-2"
+            >
+              <Smartphone className="w-4 h-4 animate-pulse" />
+              حمل التطبيق
+            </a>
+
             {isLoggedIn ? (
               <Link
                 href={dashboardUrl}
@@ -243,6 +254,16 @@ export default function Navbar() {
                   transition={{ delay: 0.4 }}
                   className="mt-auto flex flex-col gap-3"
                 >
+                  <a
+                    href="https://www.mediafire.com/file/rqmaa4auw11ee2u/app-release.apk/file"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl font-bold text-base shadow-lg mb-2"
+                  >
+                    <Smartphone className="w-5 h-5 animate-pulse" />
+                    حمل التطبيق الآن
+                  </a>
+
                   {isLoggedIn ? (
                     <Link
                       href={dashboardUrl}
