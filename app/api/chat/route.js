@@ -20,8 +20,8 @@ const SYSTEM_PROMPT = `أنت "رعايا" المساعد الذكي لمنصة 
 // Only non-thinking models
 const FREE_MODELS = [
   "google/gemma-4-26b-a4b-it:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
   "google/gemma-4-31b-it:free",
-  "minimax/minimax-m2.5:free",
 ];
 
 // Strip any thinking/reasoning text that leaks through
