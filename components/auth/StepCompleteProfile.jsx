@@ -34,10 +34,12 @@ export default function StepCompleteProfile({ role }) {
   const [pharmacyName, setPharmacyName] = useState('');
   const [pharmacyAddress, setPharmacyAddress] = useState('');
 
-  // Files (Patient only: NIDImage + SocialProofImage)
-  const [nidImage, setNidImage] = useState(null);
+  // Files (Patient only: NIDFrontImage + NIDBackImage + SocialProofImage)
+  const [nidFrontImage, setNidFrontImage] = useState(null);
+  const [nidBackImage, setNidBackImage] = useState(null);
   const [socialProofImage, setSocialProofImage] = useState(null);
-  const nidRef = useRef(null);
+  const nidFrontRef = useRef(null);
+  const nidBackRef = useRef(null);
   const socialRef = useRef(null);
 
   // ── قوائم البيانات ──
@@ -108,7 +110,8 @@ export default function StepCompleteProfile({ role }) {
         formData.append('CityId', cityId);
         formData.append('Address', address);
         formData.append('HasChronicDisease', hasChronicDisease);
-        if (nidImage) formData.append('NIDImage', nidImage);
+        if (nidFrontImage) formData.append('NIDFrontImage', nidFrontImage);
+        if (nidBackImage) formData.append('NIDBackImage', nidBackImage);
         if (socialProofImage) formData.append('SocialProofImage', socialProofImage);
 
         await api.post('/Profiles/patient', formData, {
@@ -189,7 +192,7 @@ export default function StepCompleteProfile({ role }) {
         className={`border-2 border-dashed rounded-2xl p-5 flex items-center gap-4 cursor-pointer transition-all
           ${file ? 'border-green-400 bg-green-50' : 'border-slate-200 bg-slate-50 hover:border-sky-400 hover:bg-sky-50/50'}`}
       >
-        <input type="file" className="hidden" ref={fileRef} onChange={(e) => e.target.files?.[0] && setFile(e.target.files[0])} accept="image/*" />
+        <input type="file" className="hidden" ref={fileRef} onChange={(e) => e.target.files?.[0] && setFile(e.target.files[0])} accept="image/png, image/jpeg, image/jpg, image/webp" />
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
           ${file ? 'bg-green-100 text-green-600' : 'bg-white text-sky-500 shadow-sm'}`}>
           {file ? <CheckCircle2 className="w-6 h-6" /> : <Icon className="w-6 h-6" />}
@@ -263,7 +266,8 @@ export default function StepCompleteProfile({ role }) {
       </label>
 
       <div className="space-y-3">
-        <FileUploadBox title="صورة بطاقة الرقم القومي *" desc="صورة واضحة للوجهين (أقل من 5MB)" file={nidImage} setFile={setNidImage} fileRef={nidRef} icon={CloudUpload} />
+        <FileUploadBox title="صورة وجه البطاقة (الأمام) *" desc="صورة واضحة لوجه بطاقة الرقم القومي" file={nidFrontImage} setFile={setNidFrontImage} fileRef={nidFrontRef} icon={CloudUpload} />
+        <FileUploadBox title="صورة ظهر البطاقة (الخلف) *" desc="صورة واضحة لظهر بطاقة الرقم القومي" file={nidBackImage} setFile={setNidBackImage} fileRef={nidBackRef} icon={CloudUpload} />
         <FileUploadBox title="صورة البحث الاجتماعي *" desc="نسخة حديثة من البحث الاجتماعي" file={socialProofImage} setFile={setSocialProofImage} fileRef={socialRef} icon={FileText} />
       </div>
     </>
